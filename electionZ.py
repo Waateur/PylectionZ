@@ -23,23 +23,42 @@ def vote():
     peoples = db.table("peoples")
     polls = db.table("polls")
     password = request.form["password"]
-    query=Query()
-    is_admin=keys.get(query.admin_password == hashlib.sha256(password).hexdigest())
-    if is_admin :
-        return render_template("admin.html",polls=polls.all(),peoples=peoples.all())
+    query = Query()
+    is_admin = keys.get(query.admin_password == hashlib.sha256(password).hexdigest())
+    if is_admin:
+        return render_template("admin.html", polls=polls.all(), peoples=peoples.all())
     query = Query()
     voter = peoples.get(query.code == password)
     if voter:
         print voter["voted"]
         if not voter["voted"]:
-            return render_template("do_vote.html",polls=polls.all(),action=url_for("process_vote"))
-        else :
+           users_list = [(x.eid,"{} {}".format(x["name"],x["surname"])) for x in peoples.all()]
+           users = {key: value for (key, value) in users_list  }
+           return render_template("do_vote.html",
+                                   polls=polls.all(), action=url_for("process_vote"),users=users,passcode=voter["code"])
+        else:
             return render_template("already_voted.html")
     return redirect(url_for("racine"))
 
 @app.route("/process",methods=["POST"])
 def process_vote():
-    pass
+    keys = db.table("credentials")
+    peoples = db.table("peoples")
+    polls = db.table("polls")
+
+    polls_key=request.form.keys()[:-1]
+    for poll_name in polls_key:
+        votes = request.form.getlist(poll_name)
+        query = Query()
+        apoll = polls.get(query.poll == poll_name)
+        [apoll["votes"].append(int(x)) for x in votes]
+        polls.update(apoll,eids=[apoll.eid])
+    query = Query()
+    voter = peoples.get(query.code ==request.form["user"])
+    voter["voted"] = 1
+    print voter
+    peoples.update(voter,eids=[voter.eid])
+    return redirect(url_for("racine"))
 
 @app.route("/init", methods=["GET", 'POST'])
 def init():
@@ -49,7 +68,7 @@ def init():
     if len(init_key) == 0 or len(db) == 0:
         init_key = binascii.hexlify(os.urandom(10))
         keys.insert({ "key":"init_key", "value": init_key})
-        keys.insert({ "key":"salt", "value": binascii.hexlify(os.urandom(20)) })
+        keys.insert({ "key":"salt", "value": binascii.hexlify(os.urandom(20))})
         return render_template('init.html',init_key=init_key,set_init_url=url_for("set_init"))
     else:
         return redirect(url_for("racine"))
@@ -69,7 +88,9 @@ def purge():
     db.purge()
     db.purge_tables()
     return " done"
-@app.route("/set_init", methods = ["POST"])
+
+
+@app.route("/set_init", methods=["POST"])
 def set_init():
     keys = db.table("credentials")
     peoples = db.table("peoples")

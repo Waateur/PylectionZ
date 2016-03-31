@@ -5,13 +5,41 @@
     <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 		 <title>electionZ </title>
-	        <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
-		 <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
+	        <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css"/>
+
+            <link rel="stylesheet" href="{{url_for('static', filename='css/base.css')}}"/>
+		 <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" />
+
+		 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.4.2/chosen.min.css" />
 		</head>
 
 		<body>
-		<h1> do_vote </h1>
-		<pre> <code> {{polls}} </code></pre>
-		</form>
+        <div class="content">
+		<h1> Votez s'il vous plait:   </h1>
+                    <form class="pure-form pure-form-aligned" method="POST" action="{{action}}",>
+                    {% for poll in polls %}
+                        <div class="pure-control-group">
+                        <label for="{{poll["poll"]}}"><h3>{{poll["poll"]}}</h3></label>
+                        <select class="chosen-select" multiple name="{{poll["poll"]}}">
+                            {% for eid in poll["candidates"] %}
+                                <option value="{{eid}}">{{users[eid]}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    {% endfor %}
+                    <div class="pure-control-group">
+                        <input type="text" name="user" value="{{passcode}}" hidden/>
+                        <input type="submit"/>
+                    </div>
+                    </form>
+        </div>
+        <script
+              src="https://code.jquery.com/jquery-2.2.2.min.js"
+                          integrity="sha256-36cp2Co+/62rEAAYHLmRCPIych47CvdM+uTBJwSzWjI="
+                                      crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.4.2/chosen.jquery.min.js"></script>
+        <script type="application/javascript">
+            $(".chosen-select").chosen({max_selected_options: 2});
+        </script>
 	</body>
 </html>
