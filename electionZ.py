@@ -2,7 +2,7 @@ import sys
 import os 
 from tinydb import TinyDB,Query
 import hashlib,binascii
-
+from collections import Counter
 from flask import Flask,request,render_template,redirect,url_for
 
 app = Flask(__name__)
@@ -26,11 +26,18 @@ def vote():
     query = Query()
     is_admin = keys.get(query.admin_password == hashlib.sha256(password).hexdigest())
     if is_admin:
-        return render_template("admin.html", polls=polls.all(), peoples=peoples.all())
+        polls_list = []
+        for poll in polls.all():
+            polls_list.append( (poll["poll"],[(x,y) for x,y in Counter(poll["votes"]).items() ]) )
+
+        users_list = [(x.eid,"{} {}".format(x["name"],x["surname"])) for x in peoples.all()]
+        users_by_eid = {key: value for (key, value) in users_list  }
+        query = Query()
+        nb_votant = len(peoples.search(query.voted==1))
+        return render_template("admin.html", polls=polls_list, peoples=peoples.all(),peoples_byeid=users_by_eid,nb_votant=nb_votant)
     query = Query()
     voter = peoples.get(query.code == password)
     if voter:
-        print voter["voted"]
         if not voter["voted"]:
            users_list = [(x.eid,"{} {}".format(x["name"],x["surname"])) for x in peoples.all()]
            users = {key: value for (key, value) in users_list  }
