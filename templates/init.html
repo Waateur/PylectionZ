@@ -1,42 +1,27 @@
-<html> 
-<head> 
+{% include 'header.html' %}
+    <h1> Formulaire de demarrage </h1>
+    <div class="pure-g">
+        <form action="{{set_init_url}}" method="post" class="pure-form pure-form-stacked" >
+        <fieldset>
 
+        <div class="pure-u-1-1"> 
+            <label for="voters"> <h2> Liste des votants </h2><label>
+            <textarea class="pure-input-1" rows="10" cols="30" name="voters" ></textarea> 
+        </div>
 
+        <div class="pure-u-1-1"> 
+            <label for="applicants"> <h2> Liste des elections </h2> </label>
+            <textarea width="100%" rows="10" cols="30" name="elections" class="pure-input-1" ></textarea>
+        </div>
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-
-<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
- <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
-
-
- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
-
-</head>
-
-<body>
- <title>electionZ </title>
-<h1> Formulaire de demarrage </h1>
-<div class="pure-g">
-    <form action="{{set_init_url}}" method="post" class="pure-form pure-form-stacked" >
-    <fieldset>
-
-    <div class="pure-u-1-1"> 
-        <label for="voters"> <h2> Liste des votants </h2><label>
-        <textarea rows="10" cols="30" name="voters" ></textarea> 
+        <div class="pure-u-1-1"> 
+             <label for="admin_password"> Admin password : </label>
+             <input type="text" class="pure-input-1" name="admin_password"/>
+             <input value="{{ init_key }}" name="password" hidden/>
+        </div>
+            <input class="pure-button pure-button-primary" type="submit">
+        </fieldset>
+        </form>
     </div>
 
-    <div class="pure-u-1-1"> 
-        <label for="voters"> <h2> Liste des candidats </h2> </label>
-        <textarea width="100%" rows="10" cols="30" name="applicants" ></textarea>
-    </div>
-
-    <div class="pure-u-1-1"> 
-         <input type="text" name="admin_password"/>
-         <input value="{{ init_key }}" name="password" hidden/>
-    </div>
-        <input type="submit">
-    </fieldset>
-    </form>
-</div>
-</body>
+{% include 'footer.html' %}

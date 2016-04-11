@@ -4,92 +4,92 @@ from tinydb import TinyDB,Query
 import hashlib,binascii
 from collections import Counter
 from flask import Flask,request,render_template,redirect,url_for
+from model import users, polls
+
 
 app = Flask(__name__)
 db = TinyDB('db.db')
+keys_db = db.table("credentials")
+peoples_db = db.table("peoples")
+polls_db = db.table("polls")
+
 @app.route("/")
 def racine():
-    keys = db.table("credentials")
-    peoples = db.table("peoples")
-    polls = db.table("polls")
-    if len(peoples.all()) == 0 :
+    if len(peoples_db.all()) == 0 :
         return redirect(url_for('init'))
     else : 
         return render_template("login.html",routing=url_for("vote"))
 
 @app.route("/vote",methods=["POST"])
 def vote():
-    keys = db.table("credentials")
-    peoples = db.table("peoples")
-    polls = db.table("polls")
     password = request.form["password"]
     query = Query()
-    is_admin = keys.get(query.admin_password == hashlib.sha256(password).hexdigest())
+    is_admin = keys_db.get(query.admin_password == hashlib.sha256(password).hexdigest())
     if is_admin:
         polls_list = []
-        for poll in polls.all():
-            polls_list.append( (poll["poll"],[(x,y) for x,y in Counter(poll["votes"]).items() ]) )
+        for poll in polls.getAll(polls_db):
+            polls_list.append( (poll.getName(),poll.result()) )
 
-        users_list = [(x.eid,"{} {}".format(x["name"],x["surname"])) for x in peoples.all()]
-        users_by_eid = {key: value for (key, value) in users_list  }
+        users_by_eid = users.getAllByEid(peoples_db)
         query = Query()
-        nb_votant = len(peoples.search(query.voted==1))
-        return render_template("admin.html", polls=polls_list, peoples=peoples.all(),peoples_byeid=users_by_eid,nb_votant=nb_votant)
+        nb_votant = users.nb_votant(peoples_db)
+        return render_template("admin.html", polls=polls_list, peoples=users.getAll(peoples_db),peoples_byeid=users_by_eid,nb_votant=nb_votant)
     query = Query()
-    voter = peoples.get(query.code == password)
+    voter = users.getOneByPass(peoples_db,password)
     if voter:
-        if not voter["voted"]:
-           users_list = [(x.eid,"{} {}".format(x["name"],x["surname"])) for x in peoples.all()]
-           users = {key: value for (key, value) in users_list  }
+        if not voter.getVoted():
+           users_dict = users.getAllByEid(peoples_db)
            return render_template("do_vote.html",
-                                   polls=polls.all(), action=url_for("process_vote"),users=users,passcode=voter["code"])
+                                   polls=polls.getAll(polls_db), action=url_for("process_vote"),users=users_dict,user=voter)
         else:
             return render_template("already_voted.html")
     return redirect(url_for("racine"))
 
 @app.route("/process",methods=["POST"])
 def process_vote():
-    keys = db.table("credentials")
-    peoples = db.table("peoples")
-    polls = db.table("polls")
-
-    polls_key=request.form.keys()[:-1]
-    for poll_name in polls_key:
-        votes = request.form.getlist(poll_name)
-        query = Query()
-        apoll = polls.get(query.poll == poll_name)
-        [apoll["votes"].append(int(x)) for x in votes]
-        polls.update(apoll,eids=[apoll.eid])
+    for poll in polls.getAll(polls_db):
+        votes = request.form.getlist(poll.getName())
+        if votes :
+            [ poll.add_vote(int(x)) for x in votes]
+        poll.save(polls_db)
     query = Query()
-    voter = peoples.get(query.code ==request.form["user"])
-    voter["voted"] = 1
+    print request.form["user"]
+    voter = users.getOneByEid(peoples_db,int(request.form["user"]))
     print voter
-    peoples.update(voter,eids=[voter.eid])
+    voter.vote()
+    voter.save(peoples_db)
     return redirect(url_for("racine"))
 
-@app.route("/init", methods=["GET", 'POST'])
+@app.route("/init", methods=["GET"])
 def init():
     query=Query()
-    keys= db.table("credentials")
-    init_key = keys.search(query.key == 'init')
-    if len(init_key) == 0 or len(db) == 0:
-        init_key = binascii.hexlify(os.urandom(10))
-        keys.insert({ "key":"init_key", "value": init_key})
-        keys.insert({ "key":"salt", "value": binascii.hexlify(os.urandom(20))})
+    set_key = keys_db.search(query.key == 'set_key')
+    init_key = binascii.hexlify(os.urandom(10))
+    keys_db.insert({ "key":"init_key", "value": init_key})
+
+    seted_candidates = keys_db.search(query.key == "candidates_set")
+    if len(set_key) == 0 :
+        keys_db.insert({ "key":"salt", "value": binascii.hexlify(os.urandom(20))})
         return render_template('init.html',init_key=init_key,set_init_url=url_for("set_init"))
+    elif len(set_key) > 0 and len(seted_candidates) == 0 :
+        return render_template('set_candidates.html',action=url_for("set_candidates"),users=users.getAllByEid(peoples_db),polls=polls.getAll(polls_db))
     else:
         return redirect(url_for("racine"))
 
-#    admin = db.search(query.key == 'admin')
-#    if hashlib.sha256(request.form['password']).hexdigest() != admin["password"]:
-#        return redirect(url_for("racine"))
-#    else :
-#        admin_key = binascii.hexlify(os.urandom(10))
-#        keys.insert({ "key":"admin_key", "value": admin_key})
-#        return render_template("init.html",admin_key=admin_key)
-#
+@app.route("/set_candidates",methods=["POST"])
+def set_candidates() :
+    polls_list=polls.getAll(polls_db)
+    users_list=users.getAll(peoples_db)
+    for poll in polls_list:
+        candidates = request.form.getlist(poll.getName())
+        for candidat in candidates:
+            poll.add_candidat(candidat)
+        poll.save(polls_db)
 
-
+    seted_candidates = binascii.hexlify(os.urandom(10))
+    keys_db.insert({ "key":"candidates_set", "value": seted_candidates})
+    return redirect(url_for("racine"))
+    
 @app.route("/purge")
 def purge():
     db.purge()
@@ -99,52 +99,31 @@ def purge():
 
 @app.route("/set_init", methods=["POST"])
 def set_init():
-    keys = db.table("credentials")
-    peoples = db.table("peoples")
-    polls = db.table("polls")
-    
     query = Query()
-    salt = keys.get(query.key == "salt")["value"]
-
+    salt = keys_db.get(query.key == "salt")["value"]
     query = Query()
-    init_key = keys.get((query.key == "init_key") & (query.value == request.form["password"] ) )
+    init_key = keys_db.get((query.key == "init_key") & (query.value == request.form["password"] ) )
     if init_key == None:
         raise ValueError(" form not conforme are you attacking me ?") 
 
-
     voters = request.form["voters"].split("\n") # list of people who votes
-    applicants = request.form["applicants"].split("\n") # list of candidates
+    elections = request.form["elections"].strip().split("\n") # list of elections 
 
-    keys.insert({"admin_password" : hashlib.sha256(request.form["admin_password"]).hexdigest()})# save admin_pass
+    keys_db.insert({"admin_password" : hashlib.sha256(request.form["admin_password"]).hexdigest()})# save admin_pass
 
+    for election in elections :
+        poll_tmp = polls.poll({"name" : election.strip()})
+        poll_tmp.save(polls_db)
 
-    categories = [ x["categorie"] for x in polls.all()]
-    for peo in applicants :
-        if not peo:
-            continue
-        people = peo.strip().split(";")
-        personal_code =people[0][0]+people[1][:3]+binascii.hexlify(os.urandom(1))
-        inserted_eid=peoples.insert({"name" : people[0],"surname" : people[1], "status" : 1, "categorie" : people[2], "voted" : 0, "code" : personal_code })
-        if people[2] not in categories:
-            categories.append(people[2])
-            polls.insert({"poll":people[2],"candidates":[inserted_eid],"votes":[]})
-        else :
-            query=Query()
-            poll= polls.get(query.poll == people[2])
-            polls.update({"candidates":poll["candidates"]+[inserted_eid]},eids=[poll.eid])
+    for elector in voters :
+        people = elector.strip().split(";")
+        user_tmp = users.user({"name" : people[0],"surname" : people[1], "email" : people[2] })
+        user_tmp.save(peoples_db)
+    set_key = binascii.hexlify(os.urandom(10))
+    keys_db.insert({ "key":"set_key", "value": set_key})
 
 
-
-    for voter in voters :
-        if not voter:
-            continue
-        people=voter.strip().split(';')
-        query = Query()
-        if len(db.search( (query.name == people[0]) & (query.surname == people[1]) ) )  == 0:
-            peoples.insert({"name" : people[0],"surname" : people[1], "status" : 0, "voted" : 0, "code" : people[0][0]+people[1][:3]+binascii.hexlify(os.urandom(1)) })
-
-    keys.remove(eids=[init_key.eid])
-    return redirect(url_for("racine"))
+    return redirect(url_for("init"))
 
 
 

@@ -1,20 +1,4 @@
-
-<!doctype html>
-<html>
-<head>
-    <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-		 <title>electionZ </title>
-	        <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
-		 <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
-		 <link rel="stylesheet" href="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
-		 <script src="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
-		  <link rel="stylesheet" href="{{url_for('static', filename='css/base.css')}}"/>
-
-</head>
-
-<body>
-	<div class="content">
+    {% include 'header.html' %}
 		<h1> Page de controle  </h1>
 		{% for key,poll in polls %}
 		<h2> Resultats election {{key}} </h2>
@@ -28,7 +12,7 @@
 			<tbody>
 			{% for eid,voix in poll %}
 			<tr> 
-				<td> {{peoples_byeid[eid]}}</td> <td> {{voix}} </td>
+				<td> {{peoples_byeid[eid].getName()}} {{peoples_byeid[eid].getSurname()}}</td> <td> {{voix}} </td>
 			</tr>
 			{% endfor %}
 			</tbody>
@@ -45,13 +29,11 @@
 		<table class="pure-table pure-table-horizontal" >
 			{% for people in peoples %}
 			<tr> 
-				<td>{{people["name"]}} {{people["surname"]}}</td><td> {{people["code"]}}</td>
+				<td {% if people.getVoted() %}class="voted" {% endif %} > {{people.getName()}} {{people.getSurname()}}</td><td>{{people.getEmail()}} </td><td> {{people.getCode()}}</td>
 			</tr>
 
 			{% endfor %}
 		</table>
 		</div>
 	</div>
-</div>
-</body>
-</html>
+{% include 'footer.html' %}

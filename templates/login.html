@@ -1,15 +1,4 @@
-
-<!doctype html>
-<html>
-<head>
-    <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-		 <title>electionZ </title>
-	        <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
-		 <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
-		</head>
-
-		<body>
+{% include 'header.html' %}
 		<h1> Login page : </h1>
 		<form class="pure-form" action="{{routing}}" method="post">
 			<fieldset>
@@ -18,5 +7,4 @@
 				<input type="submit">
 			</fieldset>	
 		</form>
-	</body>
-</html>
+{% include 'footer.html' %}
