@@ -4,11 +4,11 @@ import sys
 from email.mime.text import MIMEText
 
 
-def send_mail(content,from,dest,server,login,password,title="Voici votre code personnel" ):
-    msg = MIMEText(content)
-    f_title = "[Election] %s" %title
+def send_mail(content,source,dest,server,login,password,title="Voici votre code personnel" ):
+    msg = MIMEText(content,'plain', 'utf-8')
+    f_title = "[Election NP] %s" %title
     msg['Subject'] = f_title
-    msg['From'] = from
+    msg['From'] = source
     msg['To'] = dest
     s= smtplib.SMTP_SSL(server)
     s.set_debuglevel(0)

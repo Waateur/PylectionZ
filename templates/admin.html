@@ -29,7 +29,10 @@
 		<table class="pure-table pure-table-horizontal" >
 			{% for people in peoples %}
 			<tr> 
-				<td {% if people.getVoted() %}class="voted" {% endif %} > {{people.getName()}} {{people.getSurname()}}</td><td>{{people.getEmail()}} </td><td> {{people.getCode()}}</td>
+				<td> {{people.eid}} </td>
+                <td {% if people.getVoted() %}class="voted" {% endif %} > {{people.getName()}} {{people.getSurname()}}</td><td>{{people.getEmail()}} </td>
+                <td> {{people.getCode()}}</td>
+                <td> <a class="pure-button" href="{{url_for("mail",id=people.eid)}}">envoyer mail</a></td>
 			</tr>
 
 			{% endfor %}

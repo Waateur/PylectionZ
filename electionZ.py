@@ -1,10 +1,13 @@
 import sys
 import os 
+import ujson
 from tinydb import TinyDB,Query
 import hashlib,binascii
 from collections import Counter
 from flask import Flask,request,render_template,redirect,url_for
 from model import users, polls
+from utils.mail import send_mail
+import codecs
 
 
 app = Flask(__name__)
@@ -93,6 +96,7 @@ def set_candidates() :
 @app.route("/purge")
 def purge():
     db.purge()
+    print users_list
     db.purge_tables()
     return " done"
 
@@ -122,10 +126,16 @@ def set_init():
     set_key = binascii.hexlify(os.urandom(10))
     keys_db.insert({ "key":"set_key", "value": set_key})
 
-
     return redirect(url_for("init"))
 
-
+@app.route("/mail/<int:id>")
+def mail(id):
+    print id
+    dest=users.getOneByEid(peoples_db,id)
+    mail_config = ujson.load(open("mail_config.json"))
+    send_mail(mail_config["content"].format(dest.getCode()),mail_config["addresse"],dest.getEmail(),mail_config["server"],mail_config["login"],mail_config["password"])
+    return redirect(url_for("racine"))
 
 if __name__ == "__main__":
     app.run(debug=True)
+
